@@ -1,0 +1,17 @@
+key_string: "value string"
+key_string_slice:
+  - "string1"
+  - "string2"
+key_int: 123
+key_int_slice:
+  - 1
+  - 2
+key_bool: true
+key_bool_slice:
+  - true
+  - false
+key_float: 12.3
+key_float_slice:
+  - 1.23
+  - 4.56
+
