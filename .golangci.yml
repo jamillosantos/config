@@ -1,0 +1,26 @@
+linters:
+  disable-all: true
+  enable:
+    - errcheck
+    - gosimple
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+    - gosec
+    - unparam
+    # - wsl
+
+  # Run only fast linters from enabled linters set (first run won't be fast)
+  # Default: false
+  fast: true
+
+severity:
+  default-severity: error
+
+  case-sensitive: true
+
+  rules:
+    - linters:
+        - dupl
+      severity: info
