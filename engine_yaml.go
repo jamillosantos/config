@@ -1,7 +1,7 @@
 package config
 
 import (
-	"gopkg.in/yaml.v3"
+	yamlv3 "gopkg.in/yaml.v3"
 )
 
 type YAMLEngine struct {
@@ -19,11 +19,11 @@ func (engine *YAMLEngine) Load() error {
 	if err != nil {
 		return err
 	}
-	defer func () {
+	defer func() {
 		_ = engine.loader.Unload()
 	}()
 
-	decoder := yaml.NewDecoder(reader)
+	decoder := yamlv3.NewDecoder(reader)
 	data := make(map[string]interface{})
 	if err = decoder.Decode(&data); err != nil {
 		return err

@@ -10,10 +10,10 @@ jobs:
     name: Lint
     runs-on: ubuntu-latest
     steps:
-      - name: Set up Go 1.17
+      - name: Set up Go 1.19
         uses: actions/setup-go@v3
         with:
-          go-version: 1.17
+          go-version: 1.19
 
       - name: Check out code into the Go module directory
         uses: actions/checkout@v3
@@ -30,10 +30,10 @@ jobs:
     name: Security checks
     runs-on: ubuntu-latest
     steps:
-      - name: Set up Go 1.17
+      - name: Set up Go 1.19
         uses: actions/setup-go@v3
         with:
-          go-version: 1.17
+          go-version: 1.19
         id: go
 
       - name: Check out code into the Go module directory
@@ -45,7 +45,7 @@ jobs:
         run: |
           go mod download
 
-      - uses: setare/go-gosec-action@v0.1.0
+      - uses: setare/go-gosec-action@v0.2.2
 
   unit-tests:
     name: Unit tests
@@ -54,10 +54,10 @@ jobs:
       - lint
       - security
     steps:
-      - name: Set up Go 1.17
+      - name: Set up Go 1.19
         uses: actions/setup-go@v3
         with:
-          go-version: 1.17
+          go-version: 1.19
         id: go
 
       - name: Check out code into the Go module directory
