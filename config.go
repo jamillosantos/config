@@ -11,6 +11,10 @@ const (
 	defaultKeySeparator = "."
 )
 
+type Validator interface {
+	Validate() error
+}
+
 type Manager struct {
 	init         sync.Once
 	keySeparator *string
@@ -304,6 +308,12 @@ func (m *Manager) unmarshalObj(keyPrefix string, obj interface{}) error {
 			if err != nil {
 				return err
 			}
+		}
+	}
+
+	if validator, ok := obj.(Validator); ok {
+		if err := validator.Validate(); err != nil {
+			return err
 		}
 	}
 
