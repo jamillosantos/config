@@ -3,6 +3,7 @@
 package config
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -47,6 +48,21 @@ type MyTestConfigAllTypes struct {
 	KeyBoolSlice   []bool    `config:"key_bool_slice"`
 	KeyFloat       float64   `config:"key_float"`
 	KeyFloatSlice  []float64 `config:"key_float_slice"`
+}
+
+type MyTestConfigWithValidation struct {
+	N int `config:"n"`
+}
+
+var (
+	errMustBePositive = fmt.Errorf("n must be positive")
+)
+
+func (m MyTestConfigWithValidation) Validate() error {
+	if m.N < 0 {
+		return errMustBePositive
+	}
+	return nil
 }
 
 func TestManager_Populate(t *testing.T) {
@@ -176,5 +192,32 @@ func TestManager_Populate(t *testing.T) {
 		var cfg MyTestConfig
 		err := manager.Populate(&cfg)
 		require.ErrorIs(t, err, ErrKeyNotFound)
+	})
+
+	t.Run("config with validation", func(t *testing.T) {
+		t.Run("should validate the given config", func(t *testing.T) {
+			manager := NewManager()
+
+			manager.AddPlainEngine(NewMapEngine(map[string]interface{}{
+				"n": 1,
+			}))
+
+			var cfg MyTestConfigWithValidation
+			err := manager.Populate(&cfg)
+			require.NoError(t, err)
+			assert.Equal(t, 1, cfg.N)
+		})
+
+		t.Run("should fail due to invalid config", func(t *testing.T) {
+			manager := NewManager()
+
+			manager.AddPlainEngine(NewMapEngine(map[string]interface{}{
+				"n": -1,
+			}))
+
+			var cfg MyTestConfigWithValidation
+			err := manager.Populate(&cfg)
+			require.ErrorIs(t, err, errMustBePositive)
+		})
 	})
 }
