@@ -1,6 +1,7 @@
 package config
 
 import (
+	"encoding"
 	"errors"
 	"reflect"
 	"strings"
@@ -113,7 +114,27 @@ func (m *Manager) unmarshalObj(keyPrefix string, obj interface{}) error {
 		}
 		key += propName
 
+		fieldTextUnmarshalerValue, okTextUnmarshalerValue := fieldValue.Addr().Interface().(encoding.TextUnmarshaler)
+		if okTextUnmarshalerValue {
+			err := readFromEnginesInSequence(engines, func(engine Engine) error {
+				value, err := engine.GetString(key)
+				if !isRequired && errors.Is(err, ErrKeyNotFound) {
+					return nil
+				} else if err != nil {
+					return err
+				}
+				return fieldTextUnmarshalerValue.UnmarshalText([]byte(value))
+			})
+			switch {
+			case errors.Is(err, ErrTypeMismatch):
+				okTextUnmarshalerValue = false
+			case err != nil:
+				return err
+			}
+		}
 		switch {
+		case okTextUnmarshalerValue:
+			// Do nothing
 		case fieldValue.Kind() == reflect.Struct:
 			if err := m.unmarshalObj(key, fieldValue.Addr().Interface()); err != nil {
 				return err

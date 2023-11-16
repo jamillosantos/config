@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/inhies/go-bytesize"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -20,9 +21,10 @@ func TestWithKeySeparator(t *testing.T) {
 }
 
 type MyTestConfig struct {
-	DSN      string        `config:"dsn,required"`
-	Password string        `config:"password,required,secret"`
-	Timeout  time.Duration `config:"timeout"`
+	DSN      string            `config:"dsn,required"`
+	Password string            `config:"password,required,secret"`
+	Timeout  time.Duration     `config:"timeout"`
+	Size     bytesize.ByteSize `config:"size"`
 }
 
 type MyTestWithNestedConfigDatabase struct {
@@ -100,11 +102,13 @@ func TestManager_Populate(t *testing.T) {
 		manager := NewManager()
 
 		wantTimeout := time.Second * 10
+		wantSize := 10 * bytesize.MB
 
 		mapEngine := NewMapEngine(map[string]interface{}{
 			"dsn":      wantDSN,
 			"password": wantPassword,
 			"timeout":  wantTimeout,
+			"size":     wantSize.String(),
 		})
 
 		manager.AddPlainEngine(mapEngine)
@@ -116,6 +120,29 @@ func TestManager_Populate(t *testing.T) {
 		assert.Equal(t, wantDSN, cfg.DSN)
 		assert.Equal(t, wantPassword, cfg.Password)
 		assert.Equal(t, wantTimeout, cfg.Timeout)
+		assert.Equal(t, wantSize, cfg.Size)
+	})
+
+	t.Run("WHEN config implements TextUnmarshaler but the given config value isn't string", func(t *testing.T) {
+		t.Run("should parse the config as raw value", func(t *testing.T) {
+			manager := NewManager()
+
+			wantSize := 10 * bytesize.MB
+
+			mapEngine := NewMapEngine(map[string]interface{}{
+				"dsn":      wantDSN,
+				"password": wantPassword,
+				"size":     uint64(wantSize), // This will for the config to use the uint64 instead of the TextUnmarshaler
+			})
+
+			manager.AddPlainEngine(mapEngine)
+			manager.AddSecretEngine(mapEngine)
+
+			var cfg MyTestConfig
+			err := manager.Populate(&cfg)
+			require.NoError(t, err)
+			assert.Equal(t, wantSize, cfg.Size)
+		})
 	})
 
 	t.Run("success with all supported data types", func(t *testing.T) {
