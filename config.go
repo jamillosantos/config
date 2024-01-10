@@ -1,7 +1,7 @@
 package config
 
 import (
-	"encoding"
+	"encoding" // nolint
 	"errors"
 	"reflect"
 	"strings"

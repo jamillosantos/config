@@ -27,6 +27,6 @@ var (
 	ErrConfigNotPointer = errors.New("config not pointer")
 )
 
-func newErrTypeMismatch(value interface{}) error {
-	return fmt.Errorf("%w: %T found", ErrTypeMismatch, value)
+func newErrTypeMismatch(key string, value interface{}) error {
+	return fmt.Errorf("%w: %s: %T found", ErrTypeMismatch, key, value)
 }

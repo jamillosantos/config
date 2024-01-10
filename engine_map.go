@@ -42,7 +42,7 @@ func (engine *MapEngine) GetString(key string) (string, error) {
 		}
 		return *t, nil
 	}
-	return "", newErrTypeMismatch(value)
+	return "", newErrTypeMismatch(key, value)
 }
 
 func (engine *MapEngine) GetStringSlice(key string) ([]string, error) {
@@ -57,9 +57,9 @@ func (engine *MapEngine) GetStringSlice(key string) ([]string, error) {
 	case []string:
 		return t, nil
 	case []interface{}:
-		return convertInterfaceSliceToStringSlice(t)
+		return convertInterfaceSliceToStringSlice(key, t)
 	}
-	return nil, newErrTypeMismatch(value)
+	return nil, newErrTypeMismatch(key, value)
 }
 
 func (engine *MapEngine) GetInt(key string) (int, error) {
@@ -79,7 +79,7 @@ func (engine *MapEngine) GetInt(key string) (int, error) {
 		}
 		return *t, nil
 	}
-	return 0, newErrTypeMismatch(value)
+	return 0, newErrTypeMismatch(key, value)
 }
 
 func (engine *MapEngine) GetIntSlice(key string) ([]int, error) {
@@ -94,9 +94,9 @@ func (engine *MapEngine) GetIntSlice(key string) ([]int, error) {
 	case []int:
 		return t, nil
 	case []interface{}:
-		return convertInterfaceSliceToIntSlice(t)
+		return convertInterfaceSliceToIntSlice(key, t)
 	}
-	return nil, newErrTypeMismatch(value)
+	return nil, newErrTypeMismatch(key, value)
 }
 
 func (engine *MapEngine) GetUint(key string) (uint, error) {
@@ -116,7 +116,7 @@ func (engine *MapEngine) GetUint(key string) (uint, error) {
 		}
 		return *t, nil
 	}
-	return 0, newErrTypeMismatch(value)
+	return 0, newErrTypeMismatch(key, value)
 }
 
 func (engine *MapEngine) GetUintSlice(key string) ([]uint, error) {
@@ -131,9 +131,9 @@ func (engine *MapEngine) GetUintSlice(key string) ([]uint, error) {
 	case []uint:
 		return t, nil
 	case []interface{}:
-		return convertInterfaceSliceToUintSlice(t)
+		return convertInterfaceSliceToUintSlice(key, t)
 	}
-	return nil, newErrTypeMismatch(value)
+	return nil, newErrTypeMismatch(key, value)
 }
 
 func (engine *MapEngine) GetInt64(key string) (int64, error) {
@@ -153,7 +153,7 @@ func (engine *MapEngine) GetInt64(key string) (int64, error) {
 		}
 		return *t, nil
 	}
-	return 0, newErrTypeMismatch(value)
+	return 0, newErrTypeMismatch(key, value)
 }
 
 func (engine *MapEngine) GetInt64Slice(key string) ([]int64, error) {
@@ -168,9 +168,9 @@ func (engine *MapEngine) GetInt64Slice(key string) ([]int64, error) {
 	case []int64:
 		return t, nil
 	case []interface{}:
-		return convertInterfaceSliceToInt64Slice(t)
+		return convertInterfaceSliceToInt64Slice(key, t)
 	}
-	return nil, newErrTypeMismatch(value)
+	return nil, newErrTypeMismatch(key, value)
 }
 
 func (engine *MapEngine) GetUint64(key string) (uint64, error) {
@@ -190,7 +190,7 @@ func (engine *MapEngine) GetUint64(key string) (uint64, error) {
 		}
 		return *t, nil
 	}
-	return 0, newErrTypeMismatch(value)
+	return 0, newErrTypeMismatch(key, value)
 }
 
 func (engine *MapEngine) GetUint64Slice(key string) ([]uint64, error) {
@@ -205,9 +205,9 @@ func (engine *MapEngine) GetUint64Slice(key string) ([]uint64, error) {
 	case []uint64:
 		return t, nil
 	case []interface{}:
-		return convertInterfaceSliceToUint64Slice(t)
+		return convertInterfaceSliceToUint64Slice(key, t)
 	}
-	return nil, newErrTypeMismatch(value)
+	return nil, newErrTypeMismatch(key, value)
 }
 
 func (engine *MapEngine) GetBool(key string) (bool, error) {
@@ -227,7 +227,7 @@ func (engine *MapEngine) GetBool(key string) (bool, error) {
 		}
 		return *t, nil
 	}
-	return false, newErrTypeMismatch(value)
+	return false, newErrTypeMismatch(key, value)
 }
 
 func (engine *MapEngine) GetBoolSlice(key string) ([]bool, error) {
@@ -242,9 +242,9 @@ func (engine *MapEngine) GetBoolSlice(key string) ([]bool, error) {
 	case []bool:
 		return t, nil
 	case []interface{}:
-		return convertInterfaceSliceToBoolSlice(t)
+		return convertInterfaceSliceToBoolSlice(key, t)
 	}
-	return nil, newErrTypeMismatch(value)
+	return nil, newErrTypeMismatch(key, value)
 }
 
 func (engine *MapEngine) GetFloat(key string) (float64, error) {
@@ -264,7 +264,7 @@ func (engine *MapEngine) GetFloat(key string) (float64, error) {
 		}
 		return *t, nil
 	}
-	return 0, newErrTypeMismatch(value)
+	return 0, newErrTypeMismatch(key, value)
 }
 
 func (engine *MapEngine) GetFloatSlice(key string) ([]float64, error) {
@@ -279,9 +279,9 @@ func (engine *MapEngine) GetFloatSlice(key string) ([]float64, error) {
 	case []float64:
 		return t, nil
 	case []interface{}:
-		return convertInterfaceSliceToFloat64Slice(t)
+		return convertInterfaceSliceToFloat64Slice(key, t)
 	}
-	return nil, newErrTypeMismatch(value)
+	return nil, newErrTypeMismatch(key, value)
 }
 
 func (engine *MapEngine) GetDuration(key string) (time.Duration, error) {
@@ -308,7 +308,7 @@ func (engine *MapEngine) GetDuration(key string) (time.Duration, error) {
 		}
 		return *t, nil
 	}
-	return 0, newErrTypeMismatch(value)
+	return 0, newErrTypeMismatch(key, value)
 }
 
 func flattenMap(data map[string]interface{}) map[string]interface{} {
@@ -326,7 +326,7 @@ func flattenMap(data map[string]interface{}) map[string]interface{} {
 	return result
 }
 
-func convertInterfaceSliceToStringSlice(data []interface{}) ([]string, error) {
+func convertInterfaceSliceToStringSlice(key string, data []interface{}) ([]string, error) {
 	result := make([]string, len(data))
 	for i, v := range data {
 		switch v := v.(type) {
@@ -337,13 +337,13 @@ func convertInterfaceSliceToStringSlice(data []interface{}) ([]string, error) {
 				result[i] = *v
 			}
 		default:
-			return nil, newErrTypeMismatch(v)
+			return nil, newErrTypeMismatch(key, v)
 		}
 	}
 	return result, nil
 }
 
-func convertInterfaceSliceToIntSlice(data []interface{}) ([]int, error) {
+func convertInterfaceSliceToIntSlice(key string, data []interface{}) ([]int, error) {
 	result := make([]int, len(data))
 	for i, v := range data {
 		switch v := v.(type) {
@@ -354,13 +354,13 @@ func convertInterfaceSliceToIntSlice(data []interface{}) ([]int, error) {
 				result[i] = *v
 			}
 		default:
-			return nil, newErrTypeMismatch(v)
+			return nil, newErrTypeMismatch(key, v)
 		}
 	}
 	return result, nil
 }
 
-func convertInterfaceSliceToUintSlice(data []interface{}) ([]uint, error) {
+func convertInterfaceSliceToUintSlice(key string, data []interface{}) ([]uint, error) {
 	result := make([]uint, len(data))
 	for i, v := range data {
 		switch v := v.(type) {
@@ -371,13 +371,13 @@ func convertInterfaceSliceToUintSlice(data []interface{}) ([]uint, error) {
 				result[i] = *v
 			}
 		default:
-			return nil, newErrTypeMismatch(v)
+			return nil, newErrTypeMismatch(key, v)
 		}
 	}
 	return result, nil
 }
 
-func convertInterfaceSliceToInt64Slice(data []interface{}) ([]int64, error) {
+func convertInterfaceSliceToInt64Slice(key string, data []interface{}) ([]int64, error) {
 	result := make([]int64, len(data))
 	for i, v := range data {
 		switch v := v.(type) {
@@ -388,13 +388,13 @@ func convertInterfaceSliceToInt64Slice(data []interface{}) ([]int64, error) {
 				result[i] = *v
 			}
 		default:
-			return nil, newErrTypeMismatch(v)
+			return nil, newErrTypeMismatch(key, v)
 		}
 	}
 	return result, nil
 }
 
-func convertInterfaceSliceToUint64Slice(data []interface{}) ([]uint64, error) {
+func convertInterfaceSliceToUint64Slice(key string, data []interface{}) ([]uint64, error) {
 	result := make([]uint64, len(data))
 	for i, v := range data {
 		switch v := v.(type) {
@@ -405,13 +405,13 @@ func convertInterfaceSliceToUint64Slice(data []interface{}) ([]uint64, error) {
 				result[i] = *v
 			}
 		default:
-			return nil, newErrTypeMismatch(v)
+			return nil, newErrTypeMismatch(key, v)
 		}
 	}
 	return result, nil
 }
 
-func convertInterfaceSliceToBoolSlice(data []interface{}) ([]bool, error) {
+func convertInterfaceSliceToBoolSlice(key string, data []interface{}) ([]bool, error) {
 	result := make([]bool, len(data))
 	for i, v := range data {
 		switch v := v.(type) {
@@ -422,13 +422,13 @@ func convertInterfaceSliceToBoolSlice(data []interface{}) ([]bool, error) {
 				result[i] = *v
 			}
 		default:
-			return nil, newErrTypeMismatch(v)
+			return nil, newErrTypeMismatch(key, v)
 		}
 	}
 	return result, nil
 }
 
-func convertInterfaceSliceToFloat64Slice(data []interface{}) ([]float64, error) {
+func convertInterfaceSliceToFloat64Slice(key string, data []interface{}) ([]float64, error) {
 	result := make([]float64, len(data))
 	for i, v := range data {
 		switch v := v.(type) {
@@ -439,7 +439,7 @@ func convertInterfaceSliceToFloat64Slice(data []interface{}) ([]float64, error) 
 				result[i] = *v
 			}
 		default:
-			return nil, newErrTypeMismatch(v)
+			return nil, newErrTypeMismatch(key, v)
 		}
 	}
 	return result, nil
