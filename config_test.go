@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/inhies/go-bytesize"
+	bs "github.com/inhies/go-bytesize"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -21,10 +21,10 @@ func TestWithKeySeparator(t *testing.T) {
 }
 
 type MyTestConfig struct {
-	DSN      string            `config:"dsn,required"`
-	Password string            `config:"password,required,secret"`
-	Timeout  time.Duration     `config:"timeout"`
-	Size     bytesize.ByteSize `config:"size"`
+	DSN      string        `config:"dsn,required"`
+	Password string        `config:"password,required,secret"`
+	Timeout  time.Duration `config:"timeout"`
+	Size     bs.ByteSize   `config:"size"`
 }
 
 type MyTestWithNestedConfigDatabase struct {
@@ -102,7 +102,7 @@ func TestManager_Populate(t *testing.T) {
 		manager := NewManager()
 
 		wantTimeout := time.Second * 10
-		wantSize := 10 * bytesize.MB
+		wantSize := 10 * bs.MB
 
 		mapEngine := NewMapEngine(map[string]interface{}{
 			"dsn":      wantDSN,
@@ -127,7 +127,7 @@ func TestManager_Populate(t *testing.T) {
 		t.Run("should parse the config as raw value", func(t *testing.T) {
 			manager := NewManager()
 
-			wantSize := 10 * bytesize.MB
+			wantSize := 10 * bs.MB
 
 			mapEngine := NewMapEngine(map[string]interface{}{
 				"dsn":      wantDSN,
