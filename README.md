@@ -17,17 +17,23 @@ type MyConfig struct {
 ## Loading
 
 ```go
-manager := NewManager()
+import (
+    "github.com/jamillosantos/config"
+)
 
-plainEngine := NewYAMLEngine(NewConfigLoader(".config.yaml"))
-secretEngine := NewYAMLEngine(NewConfigLoader(".config-secrets.yaml"))
-
-manager.AddPlainEngine(mapEngine)
-manager.AddSecretEngine(mapEngine)
-
-var cfg MyConfig
-err := manager.Populate(&cfg)
-if err != nil {
-    panic(err)
+func main() {
+    manager := config.NewManager()
+    
+    plainEngine := config.NewYAMLEngine(config.NewFileLoader("config.yaml"))
+    secretEngine := config.NewEnvEngine()
+    
+    manager.AddPlainEngine(plainEngine, secretEngine) // Try to read from config.yaml, if not found, read from environment variables
+    manager.AddSecretEngine(secretEngine) // Secrets will always come from environment variables
+    
+    var cfg MyConfig
+    err := manager.Populate(&cfg)
+    if err != nil {
+        panic(err)
+    }
 }
 ```

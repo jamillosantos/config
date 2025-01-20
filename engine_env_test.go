@@ -31,6 +31,12 @@ func withEnvironment(env map[string]string, f func()) {
 	f()
 }
 
+func TestNewEnvEngine(t *testing.T) {
+	e := NewEnvEngine()
+	var engine Engine
+	assert.Implements(t, &engine, &e)
+}
+
 func TestEnvEngine_GetString(t *testing.T) {
 	e := NewEnvEngine()
 	wantString := "test_value"
@@ -57,7 +63,7 @@ func TestEnvEngine_GetString(t *testing.T) {
 
 		t.Run("when key does not exist", func(t *testing.T) {
 			value, err := e.GetString("non_existing_key")
-			require.NoError(t, err)
+			require.ErrorIs(t, err, ErrKeyNotFound)
 			assert.Empty(t, value)
 		})
 	})
@@ -67,15 +73,26 @@ func TestEnvEngine_GetStringSlice(t *testing.T) {
 	e := NewEnvEngine()
 	wantSlice := []string{"value1", "value2"}
 	withEnvironment(map[string]string{
-		"TEST_KEY": "value1,value2",
+		"TEST_KEY":       "value1,value2",
+		"TEST_KEY_EMPTY": "",
 	}, func() {
-		value, err := e.GetStringSlice("test.key")
-		require.NoError(t, err)
-		assert.Equal(t, wantSlice, value)
+		t.Run("when key exists", func(t *testing.T) {
+			value, err := e.GetStringSlice("test.key")
+			require.NoError(t, err)
+			assert.Equal(t, wantSlice, value)
+		})
 
-		value, err = e.GetStringSlice("non_exiting_key")
-		require.NoError(t, err)
-		assert.Nil(t, value)
+		t.Run("when key exists and it is empty it should return no error", func(t *testing.T) {
+			value, err := e.GetStringSlice("test.key.empty")
+			require.NoError(t, err)
+			assert.Nil(t, value)
+		})
+
+		t.Run("when key does not exist", func(t *testing.T) {
+			value, err := e.GetStringSlice("non_exiting_key")
+			require.ErrorIs(t, err, ErrKeyNotFound)
+			assert.Nil(t, value)
+		})
 	})
 }
 
@@ -94,7 +111,7 @@ func TestEnvEngine_GetInt(t *testing.T) {
 
 		t.Run("when key does not exist", func(t *testing.T) {
 			value, err := e.GetInt("non_existing_key")
-			require.NoError(t, err)
+			require.ErrorIs(t, err, ErrKeyNotFound)
 			assert.Zero(t, value)
 		})
 
@@ -110,8 +127,9 @@ func TestEnvEngine_GetIntSlice(t *testing.T) {
 	e := NewEnvEngine()
 	wantSlice := []int{1, 2, 3}
 	withEnvironment(map[string]string{
-		"TEST_KEY":  "1,2 ,3",
-		"TEST_KEY2": "1,invalid_int,3",
+		"TEST_KEY":       "1,2 ,3",
+		"TEST_KEY2":      "1,invalid_int,3",
+		"TEST_KEY_EMPTY": "",
 	}, func() {
 		t.Run("when key exists and valid int slice", func(t *testing.T) {
 			value, err := e.GetIntSlice("test.key")
@@ -119,9 +137,15 @@ func TestEnvEngine_GetIntSlice(t *testing.T) {
 			assert.Equal(t, wantSlice, value)
 		})
 
+		t.Run("when key exists but is empty it should not fail", func(t *testing.T) {
+			value, err := e.GetIntSlice("TEST_KEY_EMPTY")
+			require.NoError(t, err)
+			assert.Nil(t, value)
+		})
+
 		t.Run("when key does not exist", func(t *testing.T) {
 			value, err := e.GetIntSlice("non_existing_key")
-			require.NoError(t, err)
+			require.ErrorIs(t, err, ErrKeyNotFound)
 			assert.Nil(t, value)
 		})
 
@@ -137,8 +161,9 @@ func TestEnvEngine_GetUint(t *testing.T) {
 	e := NewEnvEngine()
 	wantUint := uint(42)
 	withEnvironment(map[string]string{
-		"TEST_KEY":  "42",
-		"TEST_KEY2": "invalid_uint",
+		"TEST_KEY":       "42",
+		"TEST_KEY2":      "invalid_uint",
+		"TEST_KEY_EMPTY": "",
 	}, func() {
 		t.Run("when key exists and valid int", func(t *testing.T) {
 			value, err := e.GetUint("test.key")
@@ -146,9 +171,16 @@ func TestEnvEngine_GetUint(t *testing.T) {
 			assert.Equal(t, wantUint, value)
 		})
 
+		t.Run("when key exists but it is empty it should return no error", func(t *testing.T) {
+			value, err := e.GetUint("test.key.empty")
+			require.Error(t, err)
+			assert.ErrorContains(t, err, "invalid syntax")
+			assert.Zero(t, value)
+		})
+
 		t.Run("when key does not exist", func(t *testing.T) {
 			value, err := e.GetUint("non_existing_key")
-			require.NoError(t, err)
+			require.ErrorIs(t, err, ErrKeyNotFound)
 			assert.Zero(t, value)
 		})
 
@@ -164,8 +196,9 @@ func TestEnvEngine_GetUintSlice(t *testing.T) {
 	e := NewEnvEngine()
 	wantSlice := []uint{1, 2, 3}
 	withEnvironment(map[string]string{
-		"TEST_KEY":  "1,2 ,3",
-		"TEST_KEY2": "1,invalid_uint,3",
+		"TEST_KEY":       "1,2 ,3",
+		"TEST_KEY2":      "1,invalid_uint,3",
+		"TEST_KEY_EMPTY": "",
 	}, func() {
 		t.Run("when key exists and valid uint slice", func(t *testing.T) {
 			value, err := e.GetUintSlice("test.key")
@@ -173,9 +206,15 @@ func TestEnvEngine_GetUintSlice(t *testing.T) {
 			assert.Equal(t, wantSlice, value)
 		})
 
+		t.Run("when key exists and it is empty it should return no error", func(t *testing.T) {
+			value, err := e.GetUintSlice("test.key.empty")
+			require.NoError(t, err)
+			assert.Nil(t, value)
+		})
+
 		t.Run("when key does not exist", func(t *testing.T) {
 			value, err := e.GetUintSlice("non_existing_key")
-			require.NoError(t, err)
+			require.ErrorIs(t, err, ErrKeyNotFound)
 			assert.Nil(t, value)
 		})
 
@@ -191,8 +230,9 @@ func TestEnvEngine_GetInt64(t *testing.T) {
 	e := NewEnvEngine()
 	wantInt64 := int64(42)
 	withEnvironment(map[string]string{
-		"TEST_KEY":  "42",
-		"TEST_KEY2": "invalid_int64",
+		"TEST_KEY":       "42",
+		"TEST_KEY2":      "invalid_int64",
+		"TEST_KEY_EMPTY": "",
 	}, func() {
 		t.Run("when key exists and valid int", func(t *testing.T) {
 			value, err := e.GetInt64("test.key")
@@ -200,9 +240,16 @@ func TestEnvEngine_GetInt64(t *testing.T) {
 			assert.Equal(t, wantInt64, value)
 		})
 
+		t.Run("when key exists but it is empty it should return no error", func(t *testing.T) {
+			value, err := e.GetInt64("test.key.empty")
+			require.Error(t, err)
+			assert.ErrorContains(t, err, "invalid syntax")
+			assert.Zero(t, value)
+		})
+
 		t.Run("when key does not exist", func(t *testing.T) {
 			value, err := e.GetInt64("non_existing_key")
-			require.NoError(t, err)
+			require.ErrorIs(t, err, ErrKeyNotFound)
 			assert.Zero(t, value)
 		})
 
@@ -218,8 +265,9 @@ func TestEnvEngine_GetInt64Slice(t *testing.T) {
 	e := NewEnvEngine()
 	wantSlice := []int64{1, 2, 3}
 	withEnvironment(map[string]string{
-		"TEST_KEY":  "1,2 ,3",
-		"TEST_KEY2": "1,invalid_int64,3",
+		"TEST_KEY":       "1,2 ,3",
+		"TEST_KEY2":      "1,invalid_int64,3",
+		"TEST_KEY_EMPTY": "",
 	}, func() {
 		t.Run("when key exists and valid int slice", func(t *testing.T) {
 			value, err := e.GetInt64Slice("test.key")
@@ -227,9 +275,15 @@ func TestEnvEngine_GetInt64Slice(t *testing.T) {
 			assert.Equal(t, wantSlice, value)
 		})
 
+		t.Run("when key exists and it is empty it should return no error", func(t *testing.T) {
+			value, err := e.GetInt64Slice("test.key.empty")
+			require.NoError(t, err)
+			assert.Nil(t, value)
+		})
+
 		t.Run("when key does not exist", func(t *testing.T) {
 			value, err := e.GetInt64Slice("non_existing_key")
-			require.NoError(t, err)
+			require.ErrorIs(t, err, ErrKeyNotFound)
 			assert.Nil(t, value)
 		})
 
@@ -245,8 +299,9 @@ func TestEnvEngine_GetUint64(t *testing.T) {
 	e := NewEnvEngine()
 	wantUint64 := uint64(42)
 	withEnvironment(map[string]string{
-		"TEST_KEY":  "42",
-		"TEST_KEY2": "invalid_uint64",
+		"TEST_KEY":       "42",
+		"TEST_KEY2":      "invalid_uint64",
+		"TEST_KEY_EMPTY": "",
 	}, func() {
 		t.Run("when key exists and valid int", func(t *testing.T) {
 			value, err := e.GetUint64("test.key")
@@ -254,9 +309,16 @@ func TestEnvEngine_GetUint64(t *testing.T) {
 			assert.Equal(t, wantUint64, value)
 		})
 
+		t.Run("when key exists and it is empty it should return no error", func(t *testing.T) {
+			value, err := e.GetUint64("test.key.empty")
+			require.Error(t, err)
+			assert.ErrorContains(t, err, "invalid syntax")
+			assert.Zero(t, value)
+		})
+
 		t.Run("when key does not exist", func(t *testing.T) {
 			value, err := e.GetUint64("non_existing_key")
-			require.NoError(t, err)
+			require.ErrorIs(t, err, ErrKeyNotFound)
 			assert.Zero(t, value)
 		})
 
@@ -272,8 +334,9 @@ func TestEnvEngine_GetUint64Slice(t *testing.T) {
 	e := NewEnvEngine()
 	wantSlice := []uint64{1, 2, 3}
 	withEnvironment(map[string]string{
-		"TEST_KEY":  "1,2 ,3",
-		"TEST_KEY2": "1,invalid_uint64,3",
+		"TEST_KEY":       "1,2 ,3",
+		"TEST_KEY2":      "1,invalid_uint64,3",
+		"TEST_KEY_EMPTY": "",
 	}, func() {
 		t.Run("when key exists and valid uint slice", func(t *testing.T) {
 			value, err := e.GetUint64Slice("test.key")
@@ -281,9 +344,15 @@ func TestEnvEngine_GetUint64Slice(t *testing.T) {
 			assert.Equal(t, wantSlice, value)
 		})
 
+		t.Run("when key exists and it is empty it should return no error", func(t *testing.T) {
+			value, err := e.GetUint64Slice("test.key.empty")
+			require.NoError(t, err)
+			assert.Nil(t, value)
+		})
+
 		t.Run("when key does not exist", func(t *testing.T) {
 			value, err := e.GetUint64Slice("non_existing_key")
-			require.NoError(t, err)
+			require.ErrorIs(t, err, ErrKeyNotFound)
 			assert.Nil(t, value)
 		})
 
@@ -298,8 +367,9 @@ func TestEnvEngine_GetUint64Slice(t *testing.T) {
 func TestEnvEngine_GetBool(t *testing.T) {
 	e := NewEnvEngine()
 	withEnvironment(map[string]string{
-		"TEST_KEY":  "true",
-		"TEST_KEY2": "invalid_bool",
+		"TEST_KEY":       "true",
+		"TEST_KEY2":      "invalid_bool",
+		"TEST_KEY_EMPTY": "",
 	}, func() {
 		t.Run("when key exists and valid bool", func(t *testing.T) {
 			value, err := e.GetBool("test.key")
@@ -307,9 +377,15 @@ func TestEnvEngine_GetBool(t *testing.T) {
 			assert.True(t, value)
 		})
 
+		t.Run("when key exists and but empty it should fail to parse", func(t *testing.T) {
+			_, err := e.GetBool("test.key.empty")
+			require.Error(t, err)
+			assert.ErrorContains(t, err, "invalid syntax")
+		})
+
 		t.Run("when key does not exist", func(t *testing.T) {
 			value, err := e.GetBool("non_existing_key")
-			require.NoError(t, err)
+			require.ErrorIs(t, err, ErrKeyNotFound)
 			assert.False(t, value)
 		})
 
@@ -324,8 +400,9 @@ func TestEnvEngine_GetBool(t *testing.T) {
 func TestEnvEngine_GetBoolSlice(t *testing.T) {
 	e := NewEnvEngine()
 	withEnvironment(map[string]string{
-		"TEST_KEY":  "true,false,true",
-		"TEST_KEY2": "true,invalid_bool,true",
+		"TEST_KEY":       "true,false,true",
+		"TEST_KEY2":      "true,invalid_bool,true",
+		"TEST_KEY_EMPTY": "",
 	}, func() {
 		t.Run("when key exists and valid bool slice", func(t *testing.T) {
 			value, err := e.GetBoolSlice("test.key")
@@ -333,9 +410,15 @@ func TestEnvEngine_GetBoolSlice(t *testing.T) {
 			assert.Equal(t, []bool{true, false, true}, value)
 		})
 
+		t.Run("when key exists and it is empty it should return no error", func(t *testing.T) {
+			value, err := e.GetBoolSlice("test.key.empty")
+			require.NoError(t, err)
+			assert.Nil(t, value)
+		})
+
 		t.Run("when key does not exist", func(t *testing.T) {
 			value, err := e.GetBoolSlice("non_existing_key")
-			require.NoError(t, err)
+			require.ErrorIs(t, err, ErrKeyNotFound)
 			assert.Nil(t, value)
 		})
 
@@ -361,7 +444,7 @@ func TestEnvEngine_GetFloat(t *testing.T) {
 
 		t.Run("when key does not exist", func(t *testing.T) {
 			value, err := e.GetFloat("non_existing_key")
-			require.NoError(t, err)
+			require.ErrorIs(t, err, ErrKeyNotFound)
 			assert.Zero(t, value)
 		})
 
@@ -376,8 +459,9 @@ func TestEnvEngine_GetFloat(t *testing.T) {
 func TestEnvEngine_GetFloatSlice(t *testing.T) {
 	e := NewEnvEngine()
 	withEnvironment(map[string]string{
-		"TEST_KEY":  "42.42,42.42,42.42",
-		"TEST_KEY2": "42.42,invalid_float,42.42",
+		"TEST_KEY":       "42.42,42.42,42.42",
+		"TEST_KEY2":      "42.42,invalid_float,42.42",
+		"TEST_KEY_EMPTY": "",
 	}, func() {
 		t.Run("when key exists and valid float slice", func(t *testing.T) {
 			value, err := e.GetFloatSlice("test.key")
@@ -385,9 +469,15 @@ func TestEnvEngine_GetFloatSlice(t *testing.T) {
 			assert.Equal(t, []float64{42.42, 42.42, 42.42}, value)
 		})
 
+		t.Run("when key exists and it is empty it should return no error", func(t *testing.T) {
+			value, err := e.GetFloatSlice("test.key.empty")
+			require.NoError(t, err)
+			assert.Nil(t, value)
+		})
+
 		t.Run("when key does not exist", func(t *testing.T) {
 			value, err := e.GetFloatSlice("non_existing_key")
-			require.NoError(t, err)
+			require.ErrorIs(t, err, ErrKeyNotFound)
 			assert.Nil(t, value)
 		})
 
@@ -413,7 +503,7 @@ func TestEnvEngine_GetDuration(t *testing.T) {
 
 		t.Run("when key does not exist", func(t *testing.T) {
 			value, err := e.GetDuration("non_existing_key")
-			require.NoError(t, err)
+			require.ErrorIs(t, err, ErrKeyNotFound)
 			assert.Zero(t, value)
 		})
 
