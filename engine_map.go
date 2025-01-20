@@ -1,7 +1,6 @@
 package config
 
 import (
-	"fmt"
 	"time"
 )
 
@@ -31,7 +30,7 @@ func (engine *MapEngine) GetString(key string) (string, error) {
 	}
 	value, ok := engine.data[key]
 	if !ok {
-		return "", fmt.Errorf("%w: %s", ErrKeyNotFound, key)
+		return "", ErrKeyNotFound
 	}
 	switch t := value.(type) {
 	case string:
@@ -51,7 +50,7 @@ func (engine *MapEngine) GetStringSlice(key string) ([]string, error) {
 	}
 	value, ok := engine.data[key]
 	if !ok {
-		return nil, fmt.Errorf("%w: %s", ErrKeyNotFound, key)
+		return nil, ErrKeyNotFound
 	}
 	switch t := value.(type) {
 	case []string:
@@ -68,7 +67,7 @@ func (engine *MapEngine) GetInt(key string) (int, error) {
 	}
 	value, ok := engine.data[key]
 	if !ok {
-		return 0, fmt.Errorf("%w: %s", ErrKeyNotFound, key)
+		return 0, ErrKeyNotFound
 	}
 	switch t := value.(type) {
 	case int:
@@ -88,7 +87,7 @@ func (engine *MapEngine) GetIntSlice(key string) ([]int, error) {
 	}
 	value, ok := engine.data[key]
 	if !ok {
-		return nil, fmt.Errorf("%w: %s", ErrKeyNotFound, key)
+		return nil, ErrKeyNotFound
 	}
 	switch t := value.(type) {
 	case []int:
@@ -105,7 +104,7 @@ func (engine *MapEngine) GetUint(key string) (uint, error) {
 	}
 	value, ok := engine.data[key]
 	if !ok {
-		return 0, fmt.Errorf("%w: %s", ErrKeyNotFound, key)
+		return 0, ErrKeyNotFound
 	}
 	switch t := value.(type) {
 	case uint:
@@ -125,7 +124,7 @@ func (engine *MapEngine) GetUintSlice(key string) ([]uint, error) {
 	}
 	value, ok := engine.data[key]
 	if !ok {
-		return nil, fmt.Errorf("%w: %s", ErrKeyNotFound, key)
+		return nil, ErrKeyNotFound
 	}
 	switch t := value.(type) {
 	case []uint:
@@ -142,7 +141,7 @@ func (engine *MapEngine) GetInt64(key string) (int64, error) {
 	}
 	value, ok := engine.data[key]
 	if !ok {
-		return 0, fmt.Errorf("%w: %s", ErrKeyNotFound, key)
+		return 0, ErrKeyNotFound
 	}
 	switch t := value.(type) {
 	case int64:
@@ -162,7 +161,7 @@ func (engine *MapEngine) GetInt64Slice(key string) ([]int64, error) {
 	}
 	value, ok := engine.data[key]
 	if !ok {
-		return nil, fmt.Errorf("%w: %s", ErrKeyNotFound, key)
+		return nil, ErrKeyNotFound
 	}
 	switch t := value.(type) {
 	case []int64:
@@ -179,7 +178,7 @@ func (engine *MapEngine) GetUint64(key string) (uint64, error) {
 	}
 	value, ok := engine.data[key]
 	if !ok {
-		return 0, fmt.Errorf("%w: %s", ErrKeyNotFound, key)
+		return 0, ErrKeyNotFound
 	}
 	switch t := value.(type) {
 	case uint64:
@@ -199,7 +198,7 @@ func (engine *MapEngine) GetUint64Slice(key string) ([]uint64, error) {
 	}
 	value, ok := engine.data[key]
 	if !ok {
-		return nil, fmt.Errorf("%w: %s", ErrKeyNotFound, key)
+		return nil, ErrKeyNotFound
 	}
 	switch t := value.(type) {
 	case []uint64:
@@ -216,7 +215,7 @@ func (engine *MapEngine) GetBool(key string) (bool, error) {
 	}
 	value, ok := engine.data[key]
 	if !ok {
-		return false, fmt.Errorf("%w: %s", ErrKeyNotFound, key)
+		return false, ErrKeyNotFound
 	}
 	switch t := value.(type) {
 	case bool:
@@ -236,7 +235,7 @@ func (engine *MapEngine) GetBoolSlice(key string) ([]bool, error) {
 	}
 	value, ok := engine.data[key]
 	if !ok {
-		return nil, fmt.Errorf("%w: %s", ErrKeyNotFound, key)
+		return nil, ErrKeyNotFound
 	}
 	switch t := value.(type) {
 	case []bool:
@@ -253,7 +252,7 @@ func (engine *MapEngine) GetFloat(key string) (float64, error) {
 	}
 	value, ok := engine.data[key]
 	if !ok {
-		return 0, fmt.Errorf("%w: %s", ErrKeyNotFound, key)
+		return 0, ErrKeyNotFound
 	}
 	switch t := value.(type) {
 	case float64:
@@ -273,7 +272,7 @@ func (engine *MapEngine) GetFloatSlice(key string) ([]float64, error) {
 	}
 	value, ok := engine.data[key]
 	if !ok {
-		return nil, fmt.Errorf("%w: %s", ErrKeyNotFound, key)
+		return nil, ErrKeyNotFound
 	}
 	switch t := value.(type) {
 	case []float64:
@@ -290,7 +289,7 @@ func (engine *MapEngine) GetDuration(key string) (time.Duration, error) {
 	}
 	value, ok := engine.data[key]
 	if !ok {
-		return 0, fmt.Errorf("%w: %s", ErrKeyNotFound, key)
+		return 0, ErrKeyNotFound
 	}
 	switch t := value.(type) {
 	case string:

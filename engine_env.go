@@ -46,11 +46,18 @@ func (e *EnvEngine) getKey(key string) string {
 }
 
 func (e *EnvEngine) GetString(key string) (string, error) {
-	return os.Getenv(e.getKey(key)), nil
+	value, ok := os.LookupEnv(e.getKey(key))
+	if !ok {
+		return "", ErrKeyNotFound
+	}
+	return value, nil
 }
 
 func (e *EnvEngine) GetStringSlice(key string) ([]string, error) {
-	value := os.Getenv(e.getKey(key))
+	value, ok := os.LookupEnv(e.getKey(key))
+	if !ok {
+		return nil, ErrKeyNotFound
+	}
 	if value == "" {
 		return nil, nil
 	}
@@ -60,13 +67,16 @@ func (e *EnvEngine) GetStringSlice(key string) ([]string, error) {
 func (e *EnvEngine) GetInt(key string) (int, error) {
 	value, ok := os.LookupEnv(e.getKey(key))
 	if !ok {
-		return 0, nil
+		return 0, ErrKeyNotFound
 	}
 	return strconv.Atoi(value)
 }
 
 func (e *EnvEngine) GetIntSlice(key string) ([]int, error) {
-	value := os.Getenv(e.getKey(key))
+	value, ok := os.LookupEnv(e.getKey(key))
+	if !ok {
+		return nil, ErrKeyNotFound
+	}
 	if value == "" {
 		return nil, nil
 	}
@@ -85,14 +95,17 @@ func (e *EnvEngine) GetIntSlice(key string) ([]int, error) {
 func (e *EnvEngine) GetUint(key string) (uint, error) {
 	value, ok := os.LookupEnv(e.getKey(key))
 	if !ok {
-		return 0, nil
+		return 0, ErrKeyNotFound
 	}
 	v, err := strconv.ParseUint(value, 10, 32)
 	return uint(v), err
 }
 
 func (e *EnvEngine) GetUintSlice(key string) ([]uint, error) {
-	value := os.Getenv(e.getKey(key))
+	value, err := os.LookupEnv(e.getKey(key))
+	if !err {
+		return nil, ErrKeyNotFound
+	}
 	if value == "" {
 		return nil, nil
 	}
@@ -111,13 +124,16 @@ func (e *EnvEngine) GetUintSlice(key string) ([]uint, error) {
 func (e *EnvEngine) GetInt64(key string) (int64, error) {
 	value, ok := os.LookupEnv(e.getKey(key))
 	if !ok {
-		return 0, nil
+		return 0, ErrKeyNotFound
 	}
 	return strconv.ParseInt(value, 10, 64)
 }
 
 func (e *EnvEngine) GetInt64Slice(key string) ([]int64, error) {
-	value := os.Getenv(e.getKey(key))
+	value, ok := os.LookupEnv(e.getKey(key))
+	if !ok {
+		return nil, ErrKeyNotFound
+	}
 	if value == "" {
 		return nil, nil
 	}
@@ -136,13 +152,16 @@ func (e *EnvEngine) GetInt64Slice(key string) ([]int64, error) {
 func (e *EnvEngine) GetUint64(key string) (uint64, error) {
 	value, ok := os.LookupEnv(e.getKey(key))
 	if !ok {
-		return 0, nil
+		return 0, ErrKeyNotFound
 	}
 	return strconv.ParseUint(value, 10, 64)
 }
 
 func (e *EnvEngine) GetUint64Slice(key string) ([]uint64, error) {
-	value := os.Getenv(e.getKey(key))
+	value, ok := os.LookupEnv(e.getKey(key))
+	if !ok {
+		return nil, ErrKeyNotFound
+	}
 	if value == "" {
 		return nil, nil
 	}
@@ -161,13 +180,16 @@ func (e *EnvEngine) GetUint64Slice(key string) ([]uint64, error) {
 func (e *EnvEngine) GetBool(key string) (bool, error) {
 	value, ok := os.LookupEnv(e.getKey(key))
 	if !ok {
-		return false, nil
+		return false, ErrKeyNotFound
 	}
 	return strconv.ParseBool(value)
 }
 
 func (e *EnvEngine) GetBoolSlice(key string) ([]bool, error) {
-	value := os.Getenv(e.getKey(key))
+	value, ok := os.LookupEnv(e.getKey(key))
+	if !ok {
+		return nil, ErrKeyNotFound
+	}
 	if value == "" {
 		return nil, nil
 	}
@@ -186,13 +208,16 @@ func (e *EnvEngine) GetBoolSlice(key string) ([]bool, error) {
 func (e *EnvEngine) GetFloat(key string) (float64, error) {
 	value, ok := os.LookupEnv(e.getKey(key))
 	if !ok {
-		return 0, nil
+		return 0, ErrKeyNotFound
 	}
 	return strconv.ParseFloat(value, 64)
 }
 
 func (e *EnvEngine) GetFloatSlice(key string) ([]float64, error) {
-	value := os.Getenv(e.getKey(key))
+	value, ok := os.LookupEnv(e.getKey(key))
+	if !ok {
+		return nil, ErrKeyNotFound
+	}
 	if value == "" {
 		return nil, nil
 	}
@@ -211,7 +236,7 @@ func (e *EnvEngine) GetFloatSlice(key string) ([]float64, error) {
 func (e *EnvEngine) GetDuration(key string) (time.Duration, error) {
 	value, ok := os.LookupEnv(e.getKey(key))
 	if !ok {
-		return 0, nil
+		return 0, ErrKeyNotFound
 	}
 	return time.ParseDuration(value)
 }

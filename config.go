@@ -3,6 +3,7 @@ package config
 import (
 	"encoding" // nolint
 	"errors"
+	"fmt"
 	"reflect"
 	"strings"
 	"sync"
@@ -49,17 +50,29 @@ func (m *Manager) initialize() {
 	m.plains = make([]Engine, 0)
 }
 
-func (m *Manager) AddSecretEngine(engine Engine) {
+func (m *Manager) AddSecretEngine(engines ...Engine) {
 	m.init.Do(m.initialize)
-	m.secrets = append(m.secrets, engine)
+	m.secrets = append(m.secrets, engines...)
 }
 
-func (m *Manager) AddPlainEngine(engine Engine) {
+func (m *Manager) AddPlainEngine(engines ...Engine) {
 	m.init.Do(m.initialize)
-	m.plains = append(m.plains, engine)
+	m.plains = append(m.plains, engines...)
 }
 
 func (m *Manager) Populate(cfg interface{}) error {
+	for _, eng := range m.plains {
+		err := eng.Load()
+		if err != nil {
+			return err
+		}
+	}
+	for _, eng := range m.secrets {
+		err := eng.Load()
+		if err != nil {
+			return err
+		}
+	}
 	if reflect.ValueOf(cfg).Kind() != reflect.Ptr {
 		return ErrConfigNotPointer
 	}
@@ -121,7 +134,7 @@ func (m *Manager) unmarshalObj(keyPrefix string, obj interface{}) error {
 				if !isRequired && errors.Is(err, ErrKeyNotFound) {
 					return nil
 				} else if err != nil {
-					return err
+					return fmt.Errorf("%w: %s", err, key)
 				}
 				return fieldTextUnmarshalerValue.UnmarshalText([]byte(value))
 			})
@@ -129,7 +142,7 @@ func (m *Manager) unmarshalObj(keyPrefix string, obj interface{}) error {
 			case errors.Is(err, ErrTypeMismatch):
 				okTextUnmarshalerValue = false
 			case err != nil:
-				return err
+				return fmt.Errorf("%w: %s", err, key)
 			}
 		}
 		switch {
