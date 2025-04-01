@@ -129,11 +129,9 @@ func (m *Manager) unmarshalObj(keyPrefix string, obj interface{}) error {
 
 		fieldTextUnmarshalerValue, okTextUnmarshalerValue := fieldValue.Addr().Interface().(encoding.TextUnmarshaler)
 		if okTextUnmarshalerValue {
-			err := readFromEnginesInSequence(engines, func(engine Engine) error {
+			err := readFromEnginesInSequence(engines, key, isRequired, func(engine Engine) error {
 				value, err := engine.GetString(key)
-				if !isRequired && errors.Is(err, ErrKeyNotFound) {
-					return nil
-				} else if err != nil {
+				if err != nil {
 					return fmt.Errorf("%w: %s", err, key)
 				}
 				return fieldTextUnmarshalerValue.UnmarshalText([]byte(value))
@@ -159,7 +157,7 @@ func (m *Manager) unmarshalObj(keyPrefix string, obj interface{}) error {
 					return err
 				}
 			case reflect.Int:
-				err := readFromEnginesInSequence(engines, func(engine Engine) error {
+				err := readFromEnginesInSequence(engines, key, isRequired, func(engine Engine) error {
 					value, err := engine.GetIntSlice(key)
 					if err != nil {
 						return err
@@ -171,7 +169,7 @@ func (m *Manager) unmarshalObj(keyPrefix string, obj interface{}) error {
 					return err
 				}
 			case reflect.Int64:
-				err := readFromEnginesInSequence(engines, func(engine Engine) error {
+				err := readFromEnginesInSequence(engines, key, isRequired, func(engine Engine) error {
 					value, err := engine.GetInt64Slice(key)
 					if err != nil {
 						return err
@@ -183,7 +181,7 @@ func (m *Manager) unmarshalObj(keyPrefix string, obj interface{}) error {
 					return err
 				}
 			case reflect.String:
-				err := readFromEnginesInSequence(engines, func(engine Engine) error {
+				err := readFromEnginesInSequence(engines, key, isRequired, func(engine Engine) error {
 					value, err := engine.GetStringSlice(key)
 					if err != nil {
 						return err
@@ -195,7 +193,7 @@ func (m *Manager) unmarshalObj(keyPrefix string, obj interface{}) error {
 					return err
 				}
 			case reflect.Bool:
-				err := readFromEnginesInSequence(engines, func(engine Engine) error {
+				err := readFromEnginesInSequence(engines, key, isRequired, func(engine Engine) error {
 					value, err := engine.GetBoolSlice(key)
 					if err != nil {
 						return err
@@ -207,7 +205,7 @@ func (m *Manager) unmarshalObj(keyPrefix string, obj interface{}) error {
 					return err
 				}
 			case reflect.Float64:
-				err := readFromEnginesInSequence(engines, func(engine Engine) error {
+				err := readFromEnginesInSequence(engines, key, isRequired, func(engine Engine) error {
 					value, err := engine.GetFloatSlice(key)
 					if err != nil {
 						return err
@@ -220,11 +218,9 @@ func (m *Manager) unmarshalObj(keyPrefix string, obj interface{}) error {
 				}
 			}
 		case fieldValue.Kind() == reflect.String:
-			err := readFromEnginesInSequence(engines, func(engine Engine) error {
+			err := readFromEnginesInSequence(engines, key, isRequired, func(engine Engine) error {
 				value, err := engine.GetString(key)
-				if !isRequired && errors.Is(err, ErrKeyNotFound) {
-					return nil
-				} else if err != nil {
+				if err != nil {
 					return err
 				}
 				fieldValue.SetString(value)
@@ -234,11 +230,9 @@ func (m *Manager) unmarshalObj(keyPrefix string, obj interface{}) error {
 				return err
 			}
 		case fieldValue.Kind() == reflect.Int || fieldValue.Kind() == reflect.Int8 || fieldValue.Kind() == reflect.Int16 || fieldValue.Kind() == reflect.Int32:
-			err := readFromEnginesInSequence(engines, func(engine Engine) error {
+			err := readFromEnginesInSequence(engines, key, isRequired, func(engine Engine) error {
 				value, err := engine.GetInt(key)
-				if !isRequired && errors.Is(err, ErrKeyNotFound) {
-					return nil
-				} else if err != nil {
+				if err != nil {
 					return err
 				}
 				fieldValue.SetInt(int64(value))
@@ -248,7 +242,7 @@ func (m *Manager) unmarshalObj(keyPrefix string, obj interface{}) error {
 				return err
 			}
 		case fieldValue.Kind() == reflect.Int64:
-			err := readFromEnginesInSequence(engines, func(engine Engine) error {
+			err := readFromEnginesInSequence(engines, key, isRequired, func(engine Engine) error {
 				switch fieldValue.Type().String() {
 				case "time.Duration":
 					value, err := engine.GetDuration(key)
@@ -273,11 +267,9 @@ func (m *Manager) unmarshalObj(keyPrefix string, obj interface{}) error {
 				return err
 			}
 		case fieldValue.Kind() == reflect.Uint || fieldValue.Kind() == reflect.Uint8 || fieldValue.Kind() == reflect.Uint16 || fieldValue.Kind() == reflect.Uint32:
-			err := readFromEnginesInSequence(engines, func(engine Engine) error {
+			err := readFromEnginesInSequence(engines, key, isRequired, func(engine Engine) error {
 				value, err := engine.GetUint(key)
-				if !isRequired && errors.Is(err, ErrKeyNotFound) {
-					return nil
-				} else if err != nil {
+				if err != nil {
 					return err
 				}
 				fieldValue.SetUint(uint64(value))
@@ -287,11 +279,9 @@ func (m *Manager) unmarshalObj(keyPrefix string, obj interface{}) error {
 				return err
 			}
 		case fieldValue.Kind() == reflect.Int64:
-			err := readFromEnginesInSequence(engines, func(engine Engine) error {
+			err := readFromEnginesInSequence(engines, key, isRequired, func(engine Engine) error {
 				value, err := engine.GetInt64(key)
-				if !isRequired && errors.Is(err, ErrKeyNotFound) {
-					return nil
-				} else if err != nil {
+				if err != nil {
 					return err
 				}
 				fieldValue.SetInt(value)
@@ -301,11 +291,9 @@ func (m *Manager) unmarshalObj(keyPrefix string, obj interface{}) error {
 				return err
 			}
 		case fieldValue.Kind() == reflect.Uint64:
-			err := readFromEnginesInSequence(engines, func(engine Engine) error {
+			err := readFromEnginesInSequence(engines, key, isRequired, func(engine Engine) error {
 				value, err := engine.GetUint64(key)
-				if !isRequired && errors.Is(err, ErrKeyNotFound) {
-					return nil
-				} else if err != nil {
+				if err != nil {
 					return err
 				}
 				fieldValue.SetUint(value)
@@ -315,11 +303,9 @@ func (m *Manager) unmarshalObj(keyPrefix string, obj interface{}) error {
 				return err
 			}
 		case fieldValue.Kind() == reflect.Float64 || fieldValue.Kind() == reflect.Float32:
-			err := readFromEnginesInSequence(engines, func(engine Engine) error {
+			err := readFromEnginesInSequence(engines, key, isRequired, func(engine Engine) error {
 				value, err := engine.GetFloat(key)
-				if !isRequired && errors.Is(err, ErrKeyNotFound) {
-					return nil
-				} else if err != nil {
+				if err != nil {
 					return err
 				}
 				fieldValue.SetFloat(value)
@@ -329,11 +315,9 @@ func (m *Manager) unmarshalObj(keyPrefix string, obj interface{}) error {
 				return err
 			}
 		case fieldValue.Kind() == reflect.Bool:
-			err := readFromEnginesInSequence(engines, func(engine Engine) error {
+			err := readFromEnginesInSequence(engines, key, isRequired, func(engine Engine) error {
 				value, err := engine.GetBool(key)
-				if !isRequired && errors.Is(err, ErrKeyNotFound) {
-					return nil
-				} else if err != nil {
+				if err != nil {
 					return err
 				}
 				fieldValue.SetBool(value)
@@ -354,23 +338,21 @@ func (m *Manager) unmarshalObj(keyPrefix string, obj interface{}) error {
 	return nil
 }
 
-func readFromEnginesInSequence(engines []Engine, f func(engine Engine) error) error {
-	var lastErr error
+func readFromEnginesInSequence(engines []Engine, key string, isRequired bool, f func(engine Engine) error) error {
+	var err error
 	for _, engine := range engines {
-		err := f(engine)
+		err = f(engine)
 		if errors.Is(err, ErrKeyNotFound) {
-			lastErr = err
 			continue
 		} else if err != nil {
 			return err
 		}
-		lastErr = nil // nolint
 		return nil
 	}
 
-	if lastErr != nil {
-		return lastErr
+	if isRequired && errors.Is(err, ErrKeyNotFound) {
+		return fmt.Errorf("%w: %s", ErrKeyNotFound, key)
 	}
 
-	return ErrKeyNotFound
+	return nil
 }

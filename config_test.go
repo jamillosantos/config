@@ -205,6 +205,54 @@ func TestManager_Populate(t *testing.T) {
 		assert.Zero(t, cfg.Timeout)
 	})
 
+	t.Run("WHEN reading from multiple engines", func(t *testing.T) {
+		t.Run("WHEN key is present on both engines", func(t *testing.T) {
+			t.Run("should return the value from the second", func(t *testing.T) {
+				manager := NewManager()
+
+				manager.AddPlainEngine(
+					NewMapEngine(map[string]interface{}{
+						"dsn": wantDSN,
+					}),
+					NewMapEngine(map[string]interface{}{
+						"dsn": "",
+					}),
+				)
+				manager.AddSecretEngine(NewMapEngine(map[string]interface{}{
+					"password": "",
+				}))
+
+				var cfg MyTestConfig
+				err := manager.Populate(&cfg)
+				require.NoError(t, err)
+				assert.Equal(t, wantDSN, cfg.DSN)
+				assert.Zero(t, cfg.Timeout)
+			})
+		})
+
+		t.Run("WHEN key not present on the first but present on second engine", func(t *testing.T) {
+			t.Run("should return the value from the second", func(t *testing.T) {
+				manager := NewManager()
+
+				manager.AddPlainEngine(
+					NewMapEngine(map[string]interface{}{}),
+					NewMapEngine(map[string]interface{}{
+						"dsn": wantDSN,
+					}),
+				)
+				manager.AddSecretEngine(NewMapEngine(map[string]interface{}{
+					"password": wantDSN,
+				}))
+
+				var cfg MyTestConfig
+				err := manager.Populate(&cfg)
+				require.NoError(t, err)
+				assert.Equal(t, wantDSN, cfg.DSN)
+				assert.Zero(t, cfg.Timeout)
+			})
+		})
+	})
+
 	t.Run("required fields not provided", func(t *testing.T) {
 		manager := NewManager()
 
