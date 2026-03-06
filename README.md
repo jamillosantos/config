@@ -45,11 +45,19 @@ Engines are tried in registration order; the first to return a value wins.
 
 ## Dynamic engine selection
 
-Pass `WithLoadOptionsEnv("CONFIG_LOAD_OPTIONS")` to override which engines are used at runtime via an environment variable:
+Pass `WithLoadOptionsEnv("CONFIG_LOAD_OPTIONS")` to override which engines are used at runtime via an environment variable containing a JSON object:
 
 ```json
-{"plain": ["env", "yaml"], "secrets": ["env"]}
+{"plain": ["yamlfile:/etc/app/config.yaml", "env"], "secrets": ["env"]}
 ```
+
+Supported tokens:
+
+| Token | Description |
+|-------|-------------|
+| `env` | Creates a new `EnvEngine` |
+| `yamlfile:<path>` | Creates a new `YAMLEngine` reading from the given file path |
+| `yamlfileenv:<ENV>` | Creates a new `YAMLEngine` reading from the file path stored in the named env var |
 
 ## License
 
