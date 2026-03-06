@@ -16,35 +16,32 @@ type configLoadOptions struct {
 	Secrets []string `json:"secrets"`
 }
 
-// buildEnginesFromOptions resolves a list of engine type tokens ("env", "yaml") against
-// a pool of already-registered engines, returning the ordered engine list to use.
-// For "env": uses registered *EnvEngine instances, or creates a new default EnvEngine if none found.
-// For "yaml": uses registered *YAMLEngine instances found in the pool.
-func buildEnginesFromOptions(options []string, registered []Engine) []Engine {
+// buildEnginesFromOptions builds a list of engines from a list of token strings.
+//
+// Supported tokens:
+//   - "env": creates a new EnvEngine.
+//   - "yamlfile:<filepath>": creates a new YAMLEngine backed by the given file path.
+//   - "yamlfileenv:<ENV>": creates a new YAMLEngine backed by the file path read from the named env var.
+func buildEnginesFromOptions(options []string) ([]Engine, error) {
 	result := make([]Engine, 0, len(options))
 	for _, opt := range options {
-		switch opt {
-		case "env":
-			var found bool
-			for _, eng := range registered {
-				if _, ok := eng.(*EnvEngine); ok {
-					result = append(result, eng)
-					found = true
-				}
+		switch {
+		case opt == "env":
+			eng := NewEnvEngine()
+			result = append(result, &eng)
+		case strings.HasPrefix(opt, "yamlfile:"):
+			filePath := strings.TrimPrefix(opt, "yamlfile:")
+			result = append(result, NewYAMLEngine(NewFileLoader(filePath)))
+		case strings.HasPrefix(opt, "yamlfileenv:"):
+			envName := strings.TrimPrefix(opt, "yamlfileenv:")
+			filePath, ok := os.LookupEnv(envName)
+			if !ok || filePath == "" {
+				return nil, fmt.Errorf("yamlfileenv: environment variable %q is not set", envName)
 			}
-			if !found {
-				eng := NewEnvEngine()
-				result = append(result, &eng)
-			}
-		case "yaml":
-			for _, eng := range registered {
-				if _, ok := eng.(*YAMLEngine); ok {
-					result = append(result, eng)
-				}
-			}
+			result = append(result, NewYAMLEngine(NewFileLoader(filePath)))
 		}
 	}
-	return result
+	return result, nil
 }
 
 const (
@@ -128,10 +125,18 @@ func (m *Manager) Populate(cfg interface{}) error {
 
 	if m.loadOptions != nil {
 		if m.loadOptions.Plain != nil {
-			m.plains = buildEnginesFromOptions(m.loadOptions.Plain, m.plains)
+			plains, err := buildEnginesFromOptions(m.loadOptions.Plain)
+			if err != nil {
+				return err
+			}
+			m.plains = plains
 		}
 		if m.loadOptions.Secrets != nil {
-			m.secrets = buildEnginesFromOptions(m.loadOptions.Secrets, m.secrets)
+			secrets, err := buildEnginesFromOptions(m.loadOptions.Secrets)
+			if err != nil {
+				return err
+			}
+			m.secrets = secrets
 		}
 	}
 

@@ -46,10 +46,7 @@ func TestWithLoadOptionsEnv(t *testing.T) {
 			os.Setenv("CONFIG_LOAD_OPTIONS_TEST", `{"plain":["env"],"secrets":["env"]}`)
 			defer os.Unsetenv("CONFIG_LOAD_OPTIONS_TEST")
 
-			envEngine := NewEnvEngine()
 			m := NewManager(WithLoadOptionsEnv("CONFIG_LOAD_OPTIONS_TEST"))
-			m.AddPlainEngine(&envEngine)
-			m.AddSecretEngine(&envEngine)
 
 			var cfg MyTestConfig
 			require.NoError(t, m.Populate(&cfg))
@@ -57,18 +54,15 @@ func TestWithLoadOptionsEnv(t *testing.T) {
 		})
 	})
 
-	t.Run("when plain is overridden to yaml, uses the registered YAMLEngine", func(t *testing.T) {
+	t.Run("when plain is overridden to yamlfile, reads from the given file", func(t *testing.T) {
 		withEnvironment(map[string]string{
 			"DSN":      "from-env",
 			"PASSWORD": "env-pass",
 		}, func() {
-			os.Setenv("CONFIG_LOAD_OPTIONS_TEST", `{"plain":["yaml"],"secrets":["env"]}`)
+			os.Setenv("CONFIG_LOAD_OPTIONS_TEST", `{"plain":["yamlfile:testdata/config_simple.yaml"],"secrets":["env"]}`)
 			defer os.Unsetenv("CONFIG_LOAD_OPTIONS_TEST")
 
-			envEngine := NewEnvEngine()
 			m := NewManager(WithLoadOptionsEnv("CONFIG_LOAD_OPTIONS_TEST"))
-			m.AddPlainEngine(newTestYAMLEngine())
-			m.AddSecretEngine(&envEngine)
 
 			var cfg MyTestConfig
 			require.NoError(t, m.Populate(&cfg))
@@ -77,22 +71,33 @@ func TestWithLoadOptionsEnv(t *testing.T) {
 		})
 	})
 
-	t.Run("when env token has no registered EnvEngine, creates a default one", func(t *testing.T) {
+	t.Run("when plain is overridden to yamlfileenv, reads file path from env var", func(t *testing.T) {
 		withEnvironment(map[string]string{
-			"DSN":      "from-env-default",
-			"PASSWORD": "env-pass-default",
+			"PASSWORD":        "env-pass",
+			"YAML_CONFIG_PATH": "testdata/config_simple.yaml",
 		}, func() {
-			os.Setenv("CONFIG_LOAD_OPTIONS_TEST", `{"plain":["env"],"secrets":["env"]}`)
+			os.Setenv("CONFIG_LOAD_OPTIONS_TEST", `{"plain":["yamlfileenv:YAML_CONFIG_PATH"],"secrets":["env"]}`)
 			defer os.Unsetenv("CONFIG_LOAD_OPTIONS_TEST")
 
 			m := NewManager(WithLoadOptionsEnv("CONFIG_LOAD_OPTIONS_TEST"))
-			m.AddPlainEngine(newTestYAMLEngine())
-			m.AddSecretEngine(newTestYAMLEngine())
 
 			var cfg MyTestConfig
 			require.NoError(t, m.Populate(&cfg))
-			assert.Equal(t, "from-env-default", cfg.DSN)
+			assert.Equal(t, "from-yaml", cfg.DSN)
+			assert.Equal(t, "env-pass", cfg.Password)
 		})
+	})
+
+	t.Run("when yamlfileenv references an unset env var, Populate returns error", func(t *testing.T) {
+		os.Setenv("CONFIG_LOAD_OPTIONS_TEST", `{"plain":["yamlfileenv:MISSING_VAR"]}`)
+		defer os.Unsetenv("CONFIG_LOAD_OPTIONS_TEST")
+
+		m := NewManager(WithLoadOptionsEnv("CONFIG_LOAD_OPTIONS_TEST"))
+
+		var cfg MyTestConfig
+		err := m.Populate(&cfg)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "MISSING_VAR")
 	})
 
 	t.Run("when loadOptionsEnv is empty, feature is disabled", func(t *testing.T) {
