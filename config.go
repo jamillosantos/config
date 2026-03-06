@@ -2,12 +2,50 @@ package config
 
 import (
 	"encoding" // nolint
+	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
 	"reflect"
 	"strings"
 	"sync"
 )
+
+type configLoadOptions struct {
+	Plain   []string `json:"plain"`
+	Secrets []string `json:"secrets"`
+}
+
+// buildEnginesFromOptions resolves a list of engine type tokens ("env", "yaml") against
+// a pool of already-registered engines, returning the ordered engine list to use.
+// For "env": uses registered *EnvEngine instances, or creates a new default EnvEngine if none found.
+// For "yaml": uses registered *YAMLEngine instances found in the pool.
+func buildEnginesFromOptions(options []string, registered []Engine) []Engine {
+	result := make([]Engine, 0, len(options))
+	for _, opt := range options {
+		switch opt {
+		case "env":
+			var found bool
+			for _, eng := range registered {
+				if _, ok := eng.(*EnvEngine); ok {
+					result = append(result, eng)
+					found = true
+				}
+			}
+			if !found {
+				eng := NewEnvEngine()
+				result = append(result, &eng)
+			}
+		case "yaml":
+			for _, eng := range registered {
+				if _, ok := eng.(*YAMLEngine); ok {
+					result = append(result, eng)
+				}
+			}
+		}
+	}
+	return result
+}
 
 const (
 	defaultKeySeparator = "."
@@ -18,18 +56,33 @@ type Validator interface {
 }
 
 type Manager struct {
-	init         sync.Once
-	keySeparator *string
-	secrets      []Engine
-	plains       []Engine
+	init           sync.Once
+	keySeparator   *string
+	secrets        []Engine
+	plains         []Engine
+	loadOptionsEnv string
+	loadOptions    *configLoadOptions
+	loadOptionsErr error
 }
 
 type Option func(*Manager)
 
 func NewManager(opts ...Option) *Manager {
-	r := &Manager{}
+	r := &Manager{
+		loadOptionsEnv: "CONFIG_LOAD_OPTIONS",
+	}
 	for _, opt := range opts {
 		opt(r)
+	}
+	if r.loadOptionsEnv != "" {
+		if raw, ok := os.LookupEnv(r.loadOptionsEnv); ok && raw != "" {
+			var parsed configLoadOptions
+			if err := json.Unmarshal([]byte(raw), &parsed); err != nil {
+				r.loadOptionsErr = fmt.Errorf("parsing %s: %w", r.loadOptionsEnv, err)
+			} else {
+				r.loadOptions = &parsed
+			}
+		}
 	}
 	return r
 }
@@ -38,6 +91,14 @@ func NewManager(opts ...Option) *Manager {
 func WithKeySeparator(separator string) Option {
 	return func(m *Manager) {
 		m.keySeparator = &separator
+	}
+}
+
+// WithLoadOptionsEnv sets the name of the environment variable from which the manager will read
+// load options (JSON) at creation time. If envName is empty, this feature is disabled.
+func WithLoadOptionsEnv(envName string) Option {
+	return func(m *Manager) {
+		m.loadOptionsEnv = envName
 	}
 }
 
@@ -61,15 +122,26 @@ func (m *Manager) AddPlainEngine(engines ...Engine) {
 }
 
 func (m *Manager) Populate(cfg interface{}) error {
+	if m.loadOptionsErr != nil {
+		return m.loadOptionsErr
+	}
+
+	if m.loadOptions != nil {
+		if m.loadOptions.Plain != nil {
+			m.plains = buildEnginesFromOptions(m.loadOptions.Plain, m.plains)
+		}
+		if m.loadOptions.Secrets != nil {
+			m.secrets = buildEnginesFromOptions(m.loadOptions.Secrets, m.secrets)
+		}
+	}
+
 	for _, eng := range m.plains {
-		err := eng.Load()
-		if err != nil {
+		if err := eng.Load(); err != nil {
 			return err
 		}
 	}
 	for _, eng := range m.secrets {
-		err := eng.Load()
-		if err != nil {
+		if err := eng.Load(); err != nil {
 			return err
 		}
 	}
