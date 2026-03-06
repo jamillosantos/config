@@ -4,6 +4,7 @@ package config
 
 import (
 	"fmt"
+	"os"
 	"testing"
 	"time"
 
@@ -11,6 +12,102 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func newTestYAMLEngine() *YAMLEngine {
+	return NewYAMLEngine(NewBytesLoader([]byte("dsn: from-yaml\npassword: yaml-pass")))
+}
+
+func TestWithLoadOptionsEnv(t *testing.T) {
+	t.Run("when env var is not set, uses registered engines as-is", func(t *testing.T) {
+		m := NewManager(WithLoadOptionsEnv("CONFIG_LOAD_OPTIONS_TEST"))
+		m.AddPlainEngine(newTestYAMLEngine())
+		m.AddSecretEngine(newTestYAMLEngine())
+		var cfg MyTestConfig
+		require.NoError(t, m.Populate(&cfg))
+		assert.Equal(t, "from-yaml", cfg.DSN)
+	})
+
+	t.Run("when env var is set with invalid JSON, Populate returns error", func(t *testing.T) {
+		os.Setenv("CONFIG_LOAD_OPTIONS_TEST", "not-json")
+		defer os.Unsetenv("CONFIG_LOAD_OPTIONS_TEST")
+
+		m := NewManager(WithLoadOptionsEnv("CONFIG_LOAD_OPTIONS_TEST"))
+		var cfg MyTestConfig
+		err := m.Populate(&cfg)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "CONFIG_LOAD_OPTIONS_TEST")
+	})
+
+	t.Run("when plain is overridden to env, reads from environment variables", func(t *testing.T) {
+		withEnvironment(map[string]string{
+			"DSN":      "from-env",
+			"PASSWORD": "env-pass",
+		}, func() {
+			os.Setenv("CONFIG_LOAD_OPTIONS_TEST", `{"plain":["env"],"secrets":["env"]}`)
+			defer os.Unsetenv("CONFIG_LOAD_OPTIONS_TEST")
+
+			envEngine := NewEnvEngine()
+			m := NewManager(WithLoadOptionsEnv("CONFIG_LOAD_OPTIONS_TEST"))
+			m.AddPlainEngine(&envEngine)
+			m.AddSecretEngine(&envEngine)
+
+			var cfg MyTestConfig
+			require.NoError(t, m.Populate(&cfg))
+			assert.Equal(t, "from-env", cfg.DSN)
+		})
+	})
+
+	t.Run("when plain is overridden to yaml, uses the registered YAMLEngine", func(t *testing.T) {
+		withEnvironment(map[string]string{
+			"DSN":      "from-env",
+			"PASSWORD": "env-pass",
+		}, func() {
+			os.Setenv("CONFIG_LOAD_OPTIONS_TEST", `{"plain":["yaml"],"secrets":["env"]}`)
+			defer os.Unsetenv("CONFIG_LOAD_OPTIONS_TEST")
+
+			envEngine := NewEnvEngine()
+			m := NewManager(WithLoadOptionsEnv("CONFIG_LOAD_OPTIONS_TEST"))
+			m.AddPlainEngine(newTestYAMLEngine())
+			m.AddSecretEngine(&envEngine)
+
+			var cfg MyTestConfig
+			require.NoError(t, m.Populate(&cfg))
+			assert.Equal(t, "from-yaml", cfg.DSN)
+			assert.Equal(t, "env-pass", cfg.Password)
+		})
+	})
+
+	t.Run("when env token has no registered EnvEngine, creates a default one", func(t *testing.T) {
+		withEnvironment(map[string]string{
+			"DSN":      "from-env-default",
+			"PASSWORD": "env-pass-default",
+		}, func() {
+			os.Setenv("CONFIG_LOAD_OPTIONS_TEST", `{"plain":["env"],"secrets":["env"]}`)
+			defer os.Unsetenv("CONFIG_LOAD_OPTIONS_TEST")
+
+			m := NewManager(WithLoadOptionsEnv("CONFIG_LOAD_OPTIONS_TEST"))
+			m.AddPlainEngine(newTestYAMLEngine())
+			m.AddSecretEngine(newTestYAMLEngine())
+
+			var cfg MyTestConfig
+			require.NoError(t, m.Populate(&cfg))
+			assert.Equal(t, "from-env-default", cfg.DSN)
+		})
+	})
+
+	t.Run("when loadOptionsEnv is empty, feature is disabled", func(t *testing.T) {
+		os.Setenv("CONFIG_LOAD_OPTIONS_TEST", `{"plain":["env"]}`)
+		defer os.Unsetenv("CONFIG_LOAD_OPTIONS_TEST")
+
+		m := NewManager() // no WithLoadOptionsEnv
+		m.AddPlainEngine(newTestYAMLEngine())
+		m.AddSecretEngine(newTestYAMLEngine())
+
+		var cfg MyTestConfig
+		require.NoError(t, m.Populate(&cfg))
+		assert.Equal(t, "from-yaml", cfg.DSN)
+	})
+}
 
 func TestWithKeySeparator(t *testing.T) {
 	wantKeySeparator := "."
