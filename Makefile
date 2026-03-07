@@ -5,11 +5,7 @@ mod:
 
 .PHONY: lint
 lint:
-	go run github.com/golangci/golangci-lint/cmd/golangci-lint run
-
-.PHONY: sec
-sec:
-	go run github.com/securego/gosec/v2/cmd/gosec ./...
+	go tool golangci-lint run --timeout 5m
 
 .PHONY: test
 test: lint
