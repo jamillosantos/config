@@ -54,7 +54,7 @@ type Validator interface {
 
 type Manager struct {
 	init           sync.Once
-	keySeparator   *string
+	keySeparator   string
 	secrets        []Engine
 	plains         []Engine
 	loadOptionsEnv string
@@ -67,6 +67,7 @@ type Option func(*Manager)
 func NewManager(opts ...Option) *Manager {
 	r := &Manager{
 		loadOptionsEnv: "CONFIG_LOAD_OPTIONS",
+		keySeparator:   defaultKeySeparator,
 	}
 	for _, opt := range opts {
 		opt(r)
@@ -85,9 +86,9 @@ func NewManager(opts ...Option) *Manager {
 }
 
 // WithKeySeparator sets the key separator for the manager.
-func WithKeySeparator(separator string) Option {
+func WithKeySeparator(value string) Option {
 	return func(m *Manager) {
-		m.keySeparator = &separator
+		m.keySeparator = value
 	}
 }
 
@@ -99,22 +100,20 @@ func WithLoadOptionsEnv(envName string) Option {
 	}
 }
 
-func (m *Manager) initialize() {
-	if m.keySeparator == nil {
-		keySeparator := defaultKeySeparator
-		m.keySeparator = &keySeparator
+func (m *Manager) initializeEngines() {
+	if m.secrets != nil || m.plains != nil {
+		m.secrets = make([]Engine, 0)
+		m.plains = make([]Engine, 0)
 	}
-	m.secrets = make([]Engine, 0)
-	m.plains = make([]Engine, 0)
 }
 
 func (m *Manager) AddSecretEngine(engines ...Engine) {
-	m.init.Do(m.initialize)
+	m.init.Do(m.initializeEngines)
 	m.secrets = append(m.secrets, engines...)
 }
 
 func (m *Manager) AddPlainEngine(engines ...Engine) {
-	m.init.Do(m.initialize)
+	m.init.Do(m.initializeEngines)
 	m.plains = append(m.plains, engines...)
 }
 
@@ -124,19 +123,21 @@ func (m *Manager) Populate(cfg interface{}) error {
 	}
 
 	if m.loadOptions != nil {
+		m.initializeEngines()
+
 		if m.loadOptions.Plain != nil {
 			plains, err := buildEnginesFromOptions(m.loadOptions.Plain)
 			if err != nil {
 				return err
 			}
-			m.plains = plains
+			m.plains = append(m.plains, plains...)
 		}
 		if m.loadOptions.Secrets != nil {
 			secrets, err := buildEnginesFromOptions(m.loadOptions.Secrets)
 			if err != nil {
 				return err
 			}
-			m.secrets = secrets
+			m.secrets = append(m.secrets, secrets...)
 		}
 	}
 
@@ -200,7 +201,7 @@ func (m *Manager) unmarshalObj(keyPrefix string, obj interface{}) error {
 
 		key := keyPrefix
 		if key != "" {
-			key += *m.keySeparator
+			key += m.keySeparator
 		}
 		key += propName
 
