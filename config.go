@@ -100,18 +100,20 @@ func WithLoadOptionsEnv(envName string) Option {
 	}
 }
 
-func (m *Manager) initialize() {
-	m.secrets = make([]Engine, 0)
-	m.plains = make([]Engine, 0)
+func (m *Manager) initializeEngines() {
+	if m.secrets != nil || m.plains != nil {
+		m.secrets = make([]Engine, 0)
+		m.plains = make([]Engine, 0)
+	}
 }
 
 func (m *Manager) AddSecretEngine(engines ...Engine) {
-	m.init.Do(m.initialize)
+	m.init.Do(m.initializeEngines)
 	m.secrets = append(m.secrets, engines...)
 }
 
 func (m *Manager) AddPlainEngine(engines ...Engine) {
-	m.init.Do(m.initialize)
+	m.init.Do(m.initializeEngines)
 	m.plains = append(m.plains, engines...)
 }
 
@@ -121,19 +123,21 @@ func (m *Manager) Populate(cfg interface{}) error {
 	}
 
 	if m.loadOptions != nil {
+		m.initializeEngines()
+
 		if m.loadOptions.Plain != nil {
 			plains, err := buildEnginesFromOptions(m.loadOptions.Plain)
 			if err != nil {
 				return err
 			}
-			m.plains = plains
+			m.plains = append(m.plains, plains...)
 		}
 		if m.loadOptions.Secrets != nil {
 			secrets, err := buildEnginesFromOptions(m.loadOptions.Secrets)
 			if err != nil {
 				return err
 			}
-			m.secrets = secrets
+			m.secrets = append(m.secrets, secrets...)
 		}
 	}
 
