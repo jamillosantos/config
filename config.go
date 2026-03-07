@@ -54,7 +54,7 @@ type Validator interface {
 
 type Manager struct {
 	init           sync.Once
-	keySeparator   *string
+	keySeparator   string
 	secrets        []Engine
 	plains         []Engine
 	loadOptionsEnv string
@@ -67,6 +67,7 @@ type Option func(*Manager)
 func NewManager(opts ...Option) *Manager {
 	r := &Manager{
 		loadOptionsEnv: "CONFIG_LOAD_OPTIONS",
+		keySeparator:   defaultKeySeparator,
 	}
 	for _, opt := range opts {
 		opt(r)
@@ -85,9 +86,9 @@ func NewManager(opts ...Option) *Manager {
 }
 
 // WithKeySeparator sets the key separator for the manager.
-func WithKeySeparator(separator string) Option {
+func WithKeySeparator(value string) Option {
 	return func(m *Manager) {
-		m.keySeparator = &separator
+		m.keySeparator = value
 	}
 }
 
@@ -100,10 +101,6 @@ func WithLoadOptionsEnv(envName string) Option {
 }
 
 func (m *Manager) initialize() {
-	if m.keySeparator == nil {
-		keySeparator := defaultKeySeparator
-		m.keySeparator = &keySeparator
-	}
 	m.secrets = make([]Engine, 0)
 	m.plains = make([]Engine, 0)
 }
@@ -200,7 +197,7 @@ func (m *Manager) unmarshalObj(keyPrefix string, obj interface{}) error {
 
 		key := keyPrefix
 		if key != "" {
-			key += *m.keySeparator
+			key += m.keySeparator
 		}
 		key += propName
 

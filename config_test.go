@@ -73,7 +73,7 @@ func TestWithLoadOptionsEnv(t *testing.T) {
 
 	t.Run("when plain is overridden to yamlfileenv, reads file path from env var", func(t *testing.T) {
 		withEnvironment(map[string]string{
-			"PASSWORD":        "env-pass",
+			"PASSWORD":         "env-pass",
 			"YAML_CONFIG_PATH": "testdata/config_simple.yaml",
 		}, func() {
 			os.Setenv("CONFIG_LOAD_OPTIONS_TEST", `{"plain":["yamlfileenv:YAML_CONFIG_PATH"],"secrets":["env"]}`)
@@ -119,7 +119,7 @@ func TestWithKeySeparator(t *testing.T) {
 
 	m := &Manager{}
 	WithKeySeparator(wantKeySeparator)(m)
-	assert.Equal(t, wantKeySeparator, *m.keySeparator)
+	assert.Equal(t, wantKeySeparator, m.keySeparator)
 }
 
 type MyTestConfig struct {
