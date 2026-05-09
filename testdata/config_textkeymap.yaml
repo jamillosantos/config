@@ -1,0 +1,7 @@
+items:
+  us-1:
+    name: "alpha"
+    value: 10
+  eu-2:
+    name: "beta"
+    value: 20

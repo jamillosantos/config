@@ -1,0 +1,7 @@
+items:
+  primary:
+    name: "alpha"
+    value: 10
+  secondary:
+    name: "beta"
+    value: 20

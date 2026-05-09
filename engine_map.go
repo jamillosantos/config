@@ -24,6 +24,17 @@ func (engine *MapEngine) Unload() error {
 	return nil
 }
 
+func (engine *MapEngine) Keys() []string {
+	if engine.data == nil {
+		return nil
+	}
+	keys := make([]string, 0, len(engine.data))
+	for k := range engine.data {
+		keys = append(keys, k)
+	}
+	return keys
+}
+
 func (engine *MapEngine) GetString(key string) (string, error) {
 	if engine.data == nil {
 		return "", ErrEngineNotLoaded

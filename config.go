@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"reflect"
+	"strconv"
 	"strings"
 	"sync"
 )
@@ -404,6 +405,10 @@ func (m *Manager) unmarshalObj(keyPrefix string, obj interface{}) error {
 			if err != nil {
 				return err
 			}
+		case fieldValue.Kind() == reflect.Map:
+			if err := m.unmarshalMap(key, fieldValue, isRequired); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -414,6 +419,104 @@ func (m *Manager) unmarshalObj(keyPrefix string, obj interface{}) error {
 	}
 
 	return nil
+}
+
+func (m *Manager) unmarshalMap(prefix string, fieldValue reflect.Value, isRequired bool) error {
+	mapType := fieldValue.Type()
+	if mapType.Elem().Kind() != reflect.Struct {
+		return nil
+	}
+	indexes := m.collectMapIndexes(prefix)
+	if len(indexes) == 0 {
+		if isRequired {
+			return fmt.Errorf("%w: %s", ErrKeyNotFound, prefix)
+		}
+		return nil
+	}
+	keyType := mapType.Key()
+	elemType := mapType.Elem()
+	out := reflect.MakeMapWithSize(mapType, len(indexes))
+	for _, idx := range indexes {
+		mapKey, err := convertMapKey(keyType, idx)
+		if err != nil {
+			return fmt.Errorf("map %s: invalid key %q: %w", prefix, idx, err)
+		}
+		elem := reflect.New(elemType)
+		subKey := prefix + m.keySeparator + idx
+		if err := m.unmarshalObj(subKey, elem.Interface()); err != nil {
+			return err
+		}
+		out.SetMapIndex(mapKey, elem.Elem())
+	}
+	fieldValue.Set(out)
+	return nil
+}
+
+func (m *Manager) collectMapIndexes(prefix string) []string {
+	sep := m.keySeparator
+	full := prefix + sep
+	seen := make(map[string]struct{})
+	out := make([]string, 0)
+	collect := func(engines []Engine) {
+		for _, eng := range engines {
+			lister, ok := eng.(EngineKeyLister)
+			if !ok {
+				continue
+			}
+			for _, k := range lister.Keys() {
+				if !strings.HasPrefix(k, full) {
+					continue
+				}
+				rest := k[len(full):]
+				seg := rest
+				if i := strings.Index(rest, sep); i >= 0 {
+					seg = rest[:i]
+				}
+				if seg == "" {
+					continue
+				}
+				if _, ok := seen[seg]; ok {
+					continue
+				}
+				seen[seg] = struct{}{}
+				out = append(out, seg)
+			}
+		}
+	}
+	collect(m.plains)
+	collect(m.secrets)
+	return out
+}
+
+func convertMapKey(t reflect.Type, s string) (reflect.Value, error) {
+	ptr := reflect.New(t)
+	if u, ok := ptr.Interface().(encoding.TextUnmarshaler); ok {
+		if err := u.UnmarshalText([]byte(s)); err != nil {
+			return reflect.Value{}, err
+		}
+		return ptr.Elem(), nil
+	}
+	v := ptr.Elem()
+	switch t.Kind() {
+	case reflect.String:
+		v.SetString(s)
+		return v, nil
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		n, err := strconv.ParseInt(s, 10, t.Bits())
+		if err != nil {
+			return reflect.Value{}, err
+		}
+		v.SetInt(n)
+		return v, nil
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		n, err := strconv.ParseUint(s, 10, t.Bits())
+		if err != nil {
+			return reflect.Value{}, err
+		}
+		v.SetUint(n)
+		return v, nil
+	}
+	return reflect.Value{}, fmt.Errorf("unsupported map key type %s", t.String())
 }
 
 func readFromEnginesInSequence(engines []Engine, key string, isRequired bool, f func(engine Engine) error) error {
