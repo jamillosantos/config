@@ -31,3 +31,11 @@ type Engine interface {
 
 	GetDuration(key string) (time.Duration, error)
 }
+
+// EngineKeyLister is an optional capability for engines that can enumerate
+// their flat keys. Engines that implement this enable features that need to
+// discover structure from the underlying source, such as populating
+// map[K]Struct fields.
+type EngineKeyLister interface {
+	Keys() []string
+}

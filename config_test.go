@@ -5,6 +5,8 @@ package config
 import (
 	"fmt"
 	"os"
+	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -156,6 +158,68 @@ type MyTestConfigAllTypes struct {
 
 type MyTestConfigWithValidation struct {
 	N int `config:"n"`
+}
+
+type MyTestMapItem struct {
+	Name  string `config:"name"`
+	Value int    `config:"value"`
+}
+
+type MyTestMapItemRequired struct {
+	Name  string `config:"name,required"`
+	Value int    `config:"value"`
+}
+
+type MyTestMapItemWithSecret struct {
+	Name  string `config:"name"`
+	Token string `config:"token,secret"`
+}
+
+type MyTestConfigWithIntMap struct {
+	Items map[int]MyTestMapItem `config:"items"`
+}
+
+type MyTestConfigWithStringMap struct {
+	Items map[string]MyTestMapItem `config:"items"`
+}
+
+type MyTestConfigWithIntMapRequiredSub struct {
+	Items map[int]MyTestMapItemRequired `config:"items"`
+}
+
+type MyTestConfigWithIntMapSecret struct {
+	Items map[int]MyTestMapItemWithSecret `config:"items"`
+}
+
+type MyTestConfigWithInt64Map struct {
+	Items map[int64]MyTestMapItem `config:"items"`
+}
+
+type textKey struct {
+	Region string
+	ID     int
+}
+
+func (k *textKey) UnmarshalText(text []byte) error {
+	parts := strings.SplitN(string(text), "-", 2)
+	if len(parts) != 2 {
+		return fmt.Errorf("invalid textKey: %q", string(text))
+	}
+	id, err := strconv.Atoi(parts[1])
+	if err != nil {
+		return err
+	}
+	k.Region = parts[0]
+	k.ID = id
+	return nil
+}
+
+type MyTestConfigWithTextKeyMap struct {
+	Items map[textKey]MyTestMapItem `config:"items"`
+}
+
+type MyTestConfigWithFloatKeyMap struct {
+	Items map[float64]MyTestMapItem `config:"items"`
 }
 
 var (
@@ -395,6 +459,205 @@ func TestManager_Populate(t *testing.T) {
 			var cfg MyTestConfigWithValidation
 			err := manager.Populate(&cfg)
 			require.ErrorIs(t, err, errMustBePositive)
+		})
+	})
+
+	t.Run("map of struct", func(t *testing.T) {
+		t.Run("populates map[int]Struct from MapEngine", func(t *testing.T) {
+			manager := NewManager()
+			mapEngine := NewMapEngine(map[string]interface{}{
+				"items": map[string]interface{}{
+					"1": map[string]interface{}{
+						"name":  "alpha",
+						"value": 10,
+					},
+					"2": map[string]interface{}{
+						"name":  "beta",
+						"value": 20,
+					},
+				},
+			})
+			manager.AddPlainEngine(mapEngine)
+			manager.AddSecretEngine(mapEngine)
+
+			var cfg MyTestConfigWithIntMap
+			err := manager.Populate(&cfg)
+			require.NoError(t, err)
+			assert.Len(t, cfg.Items, 2)
+			assert.Equal(t, "alpha", cfg.Items[1].Name)
+			assert.Equal(t, 10, cfg.Items[1].Value)
+			assert.Equal(t, "beta", cfg.Items[2].Name)
+			assert.Equal(t, 20, cfg.Items[2].Value)
+		})
+
+		t.Run("populates map[string]Struct from MapEngine", func(t *testing.T) {
+			manager := NewManager()
+			mapEngine := NewMapEngine(map[string]interface{}{
+				"items": map[string]interface{}{
+					"primary": map[string]interface{}{
+						"name":  "alpha",
+						"value": 10,
+					},
+					"secondary": map[string]interface{}{
+						"name":  "beta",
+						"value": 20,
+					},
+				},
+			})
+			manager.AddPlainEngine(mapEngine)
+			manager.AddSecretEngine(mapEngine)
+
+			var cfg MyTestConfigWithStringMap
+			err := manager.Populate(&cfg)
+			require.NoError(t, err)
+			assert.Len(t, cfg.Items, 2)
+			assert.Equal(t, "alpha", cfg.Items["primary"].Name)
+			assert.Equal(t, 10, cfg.Items["primary"].Value)
+			assert.Equal(t, "beta", cfg.Items["secondary"].Name)
+			assert.Equal(t, 20, cfg.Items["secondary"].Value)
+		})
+
+		t.Run("populates map[int64]Struct from MapEngine", func(t *testing.T) {
+			manager := NewManager()
+			mapEngine := NewMapEngine(map[string]interface{}{
+				"items": map[string]interface{}{
+					"100": map[string]interface{}{
+						"name":  "alpha",
+						"value": 10,
+					},
+				},
+			})
+			manager.AddPlainEngine(mapEngine)
+			manager.AddSecretEngine(mapEngine)
+
+			var cfg MyTestConfigWithInt64Map
+			err := manager.Populate(&cfg)
+			require.NoError(t, err)
+			assert.Len(t, cfg.Items, 1)
+			assert.Equal(t, "alpha", cfg.Items[100].Name)
+		})
+
+		t.Run("leaves map nil when no keys present", func(t *testing.T) {
+			manager := NewManager()
+			mapEngine := NewMapEngine(map[string]interface{}{
+				"unrelated": "value",
+			})
+			manager.AddPlainEngine(mapEngine)
+			manager.AddSecretEngine(mapEngine)
+
+			var cfg MyTestConfigWithIntMap
+			err := manager.Populate(&cfg)
+			require.NoError(t, err)
+			assert.Nil(t, cfg.Items)
+		})
+
+		t.Run("returns error when required subfield missing", func(t *testing.T) {
+			manager := NewManager()
+			mapEngine := NewMapEngine(map[string]interface{}{
+				"items": map[string]interface{}{
+					"1": map[string]interface{}{
+						"value": 10,
+					},
+				},
+			})
+			manager.AddPlainEngine(mapEngine)
+			manager.AddSecretEngine(mapEngine)
+
+			var cfg MyTestConfigWithIntMapRequiredSub
+			err := manager.Populate(&cfg)
+			require.ErrorIs(t, err, ErrKeyNotFound)
+		})
+
+		t.Run("routes secret subfield to secret engines", func(t *testing.T) {
+			manager := NewManager()
+			plain := NewMapEngine(map[string]interface{}{
+				"items": map[string]interface{}{
+					"1": map[string]interface{}{
+						"name": "alpha",
+					},
+				},
+			})
+			secret := NewMapEngine(map[string]interface{}{
+				"items": map[string]interface{}{
+					"1": map[string]interface{}{
+						"token": "s3cr3t",
+					},
+				},
+			})
+			manager.AddPlainEngine(plain)
+			manager.AddSecretEngine(secret)
+
+			var cfg MyTestConfigWithIntMapSecret
+			err := manager.Populate(&cfg)
+			require.NoError(t, err)
+			assert.Equal(t, "alpha", cfg.Items[1].Name)
+			assert.Equal(t, "s3cr3t", cfg.Items[1].Token)
+		})
+
+		t.Run("populates map[int]Struct from YAMLEngine", func(t *testing.T) {
+			manager := NewManager()
+			yEngine := NewYAMLEngine(NewFileLoader("testdata/config_intmap.yaml"))
+			manager.AddPlainEngine(yEngine)
+			manager.AddSecretEngine(yEngine)
+
+			var cfg MyTestConfigWithIntMap
+			err := manager.Populate(&cfg)
+			require.NoError(t, err)
+			assert.Len(t, cfg.Items, 2)
+			assert.Equal(t, "alpha", cfg.Items[1].Name)
+			assert.Equal(t, 10, cfg.Items[1].Value)
+			assert.Equal(t, "beta", cfg.Items[2].Name)
+			assert.Equal(t, 20, cfg.Items[2].Value)
+		})
+
+		t.Run("populates map[string]Struct from YAMLEngine", func(t *testing.T) {
+			manager := NewManager()
+			yEngine := NewYAMLEngine(NewFileLoader("testdata/config_stringmap.yaml"))
+			manager.AddPlainEngine(yEngine)
+			manager.AddSecretEngine(yEngine)
+
+			var cfg MyTestConfigWithStringMap
+			err := manager.Populate(&cfg)
+			require.NoError(t, err)
+			assert.Len(t, cfg.Items, 2)
+			assert.Equal(t, "alpha", cfg.Items["primary"].Name)
+			assert.Equal(t, 10, cfg.Items["primary"].Value)
+			assert.Equal(t, "beta", cfg.Items["secondary"].Name)
+			assert.Equal(t, 20, cfg.Items["secondary"].Value)
+		})
+
+		t.Run("populates map with TextUnmarshaler key from YAMLEngine", func(t *testing.T) {
+			manager := NewManager()
+			yEngine := NewYAMLEngine(NewFileLoader("testdata/config_textkeymap.yaml"))
+			manager.AddPlainEngine(yEngine)
+			manager.AddSecretEngine(yEngine)
+
+			var cfg MyTestConfigWithTextKeyMap
+			err := manager.Populate(&cfg)
+			require.NoError(t, err)
+			assert.Len(t, cfg.Items, 2)
+			assert.Equal(t, "alpha", cfg.Items[textKey{Region: "us", ID: 1}].Name)
+			assert.Equal(t, 10, cfg.Items[textKey{Region: "us", ID: 1}].Value)
+			assert.Equal(t, "beta", cfg.Items[textKey{Region: "eu", ID: 2}].Name)
+			assert.Equal(t, 20, cfg.Items[textKey{Region: "eu", ID: 2}].Value)
+		})
+
+		t.Run("returns error when map key type unsupported and not TextUnmarshaler", func(t *testing.T) {
+			manager := NewManager()
+			mapEngine := NewMapEngine(map[string]interface{}{
+				"items": map[string]interface{}{
+					"1.5": map[string]interface{}{
+						"name": "alpha",
+					},
+				},
+			})
+			manager.AddPlainEngine(mapEngine)
+			manager.AddSecretEngine(mapEngine)
+
+			var cfg MyTestConfigWithFloatKeyMap
+			err := manager.Populate(&cfg)
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), "unsupported map key type")
 		})
 	})
 }
